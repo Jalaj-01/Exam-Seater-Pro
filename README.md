@@ -2,7 +2,7 @@
 
 Exam Seater Pro is a Python and Streamlit-based web application that automates the process of exam seating arrangement for colleges and universities. It helps allocate students across multiple rooms while ensuring subject-wise spacing rules to maintain fairness and prevent adjacent seating of students from the same paper.
 
-The platform supports Excel uploads for student, room, and faculty data, generates interactive room-wise seating visualizations, and provides downloadable Excel and professional PDF reports including seating indexes and attendance sheets.
+The platform supports Excel uploads for student, room, and faculty data, generates interactive room-wise seating visualizations, and provides downloadable and professional PDF reports including seating indexes and attendance sheets.
 
 ---
 

@@ -163,8 +163,8 @@ def create_sample_excel(df):
     return output.getvalue()
 
 # --- STREAMLIT UI ---
-st.set_page_config(page_title="Exam Seater Pro", layout="wide")
-st.title("🎓 Exam Seater Pro")
+st.set_page_config(page_title="OptiSeat", layout="wide")
+st.title("🎓 OptiSeat")
 
 if 'plans' not in st.session_state:
     st.session_state.plans = None

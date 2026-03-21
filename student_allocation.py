@@ -3,6 +3,38 @@ import pandas as pd
 from fpdf import FPDF
 import io
 import math
+import json
+import pdfplumber 
+
+# --- HELPER TO HANDLE MULTIPLE FORMATS ---
+def load_data(uploaded_file):
+    if uploaded_file is None:
+        return None
+    
+    file_extension = uploaded_file.name.split('.')[-1].lower()
+    
+    try:
+        if file_extension in ['xlsx', 'xls']:
+            return pd.read_excel(uploaded_file)
+        elif file_extension in ['csv', 'txt']: # Added 'txt' support here
+            return pd.read_csv(uploaded_file)
+        elif file_extension == 'json':
+            return pd.read_json(uploaded_file)
+        elif file_extension == 'pdf':
+            with pdfplumber.open(uploaded_file) as pdf:
+                all_rows = []
+                for page in pdf.pages:
+                    table = page.extract_table()
+                    if table:
+                        all_rows.extend(table)
+                if not all_rows:
+                    st.error(f"No tables found in {uploaded_file.name}")
+                    return pd.DataFrame()
+                df = pd.DataFrame(all_rows[1:], columns=all_rows[0])
+                return df
+    except Exception as e:
+        st.error(f"Error loading {uploaded_file.name}: {e}")
+        return None
 
 # --- CORE LOGIC ---
 def allocate_logic(df_students, rooms_list):
@@ -19,7 +51,6 @@ def allocate_logic(df_students, rooms_list):
         
         for i in range(r):
             for j in range(c):
-                
                 illegal = set()
                 if j > 0 and grid[i][j-1]: illegal.add(grid[i][j-1]['paper'])
                 if i > 0 and grid[i-1][j]: illegal.add(grid[i-1][j]['paper'])
@@ -121,7 +152,7 @@ def create_pdf(room_plans, assignments, exam_date, exam_time):
                     pdf.cell(45, 12, str(seat['id']), 1, 0, 'C')
                     pdf.cell(40, 12, str(seat['paper']), 1, 0, 'C')
                     pdf.cell(80, 12, "", 1, 1)
-    # return bytes(pdf.output())
+    
     return pdf.output(dest="S").encode("latin-1")
 
 
@@ -144,7 +175,7 @@ st.sidebar.markdown("## **Upload Data**")
 with st.sidebar.expander("🛠️ Need Test Files?"):
     s_df = pd.DataFrame({
         'RollNo': [f'STU{1000 + i}' for i in range(250)], 
-        'PaperCode': (['CS101']*180 + ['MA202']*70), # Unbalanced subjects
+        'PaperCode': (['CS101']*180 + ['MA202']*70), 
         'ExamDate': (['2026-02-10']*250),
         'ExamTime': (['09:00 AM']*250)
     })
@@ -154,43 +185,45 @@ with st.sidebar.expander("🛠️ Need Test Files?"):
     st.download_button("Download Rooms.xlsx", create_sample_excel(r_df), "rooms.xlsx")
     st.download_button("Download Faculty.xlsx", create_sample_excel(f_df), "faculty.xlsx")
 
-file_students = st.sidebar.file_uploader("Upload Student List (Excel)", type=['xlsx'])
-file_rooms = st.sidebar.file_uploader("Upload Room Details (Excel)", type=['xlsx'])
-file_faculty = st.sidebar.file_uploader("Upload Faculty List (Excel)", type=['xlsx'])
+# ALLOWING '.txt' IN THE TYPE LIST BELOW
+allowed_types = ['xlsx', 'xls', 'csv', 'json', 'pdf', 'txt']
+file_students = st.sidebar.file_uploader("Upload Student List", type=allowed_types)
+file_rooms = st.sidebar.file_uploader("Upload Room Details", type=allowed_types)
+file_faculty = st.sidebar.file_uploader("Upload Faculty List", type=allowed_types)
 
 if not (file_students and file_rooms and file_faculty):
-    st.markdown(":green[**Ready to help! Please upload the Excel files in the sidebar to generate the arrangement.**]")
-    st.markdown("### **Required Excel Formats:**")
+    st.markdown(":green[**Ready to help! Please upload your data files in the sidebar.**]")
+    st.markdown("### **Required Columns:**")
     st.markdown("""
-    *   **Students:** Columns: `RollNo` , `PaperCode`, `ExamDate`, `ExamTime`
-    *   **Rooms:** Columns: `RoomName` , `Rows` , `Cols`
-    *   **Faculty:** Columns: `Name` , `DutiesDone`
+    *   **Students:** `RollNo` , `PaperCode`, `ExamDate`, `ExamTime`
+    *   **Rooms:** `RoomName` , `Rows` , `Cols`
+    *   **Faculty:** `Name` , `DutiesDone`
     """)
 else:
-    df_st = pd.read_excel(file_students)
-    df_rm = pd.read_excel(file_rooms)
-    df_fa = pd.read_excel(file_faculty)
+    df_st = load_data(file_students)
+    df_rm = load_data(file_rooms)
+    df_fa = load_data(file_faculty)
 
-    if 'ExamDate' in df_st.columns and 'ExamTime' in df_st.columns:
-        dates = sorted(df_st['ExamDate'].unique().astype(str))
+    if df_st is not None and 'ExamDate' in df_st.columns and 'ExamTime' in df_st.columns:
+        # Standardizing formats
+        df_st['ExamDate'] = df_st['ExamDate'].astype(str)
+        df_st['ExamTime'] = df_st['ExamTime'].astype(str)
+        
+        dates = sorted(df_st['ExamDate'].unique())
         col_d, col_t = st.columns(2)
         selected_date = col_d.selectbox("📅 Select Exam Date", dates)
-        times = sorted(df_st[df_st['ExamDate'].astype(str) == selected_date]['ExamTime'].unique().astype(str))
+        times = sorted(df_st[df_st['ExamDate'] == selected_date]['ExamTime'].unique())
         selected_time = col_t.selectbox("🕒 Select Exam Time/Shift", times)
         
-        day_students = df_st[(df_st['ExamDate'].astype(str) == selected_date) & (df_st['ExamTime'].astype(str) == selected_time)]
+        day_students = df_st[(df_st['ExamDate'] == selected_date) & (df_st['ExamTime'] == selected_time)]
         student_count = len(day_students)
         
-        # --- NEW ACCURATE ESTIMATION LOGIC ---
         paper_counts = day_students['PaperCode'].value_counts()
         max_s = paper_counts.max()
-        other_s = student_count - max_s
-        
-        # HEURISTIC: Dominant subject forces (Total - 2*Other) gaps
-        # If max_s > other_s, we need gaps to separate the dominant subject
-        # Required seats = Students + Required Gaps
         required_physical_seats = max(student_count, (2 * max_s) - 1)
         
+        df_rm['Rows'] = pd.to_numeric(df_rm['Rows'])
+        df_rm['Cols'] = pd.to_numeric(df_rm['Cols'])
         df_rm['Capacity'] = df_rm['Rows'] * df_rm['Cols']
         total_capacity = df_rm['Capacity'].sum()
         
@@ -213,7 +246,7 @@ else:
         c1.metric("Total Physical Chairs", total_capacity)
         c2.metric(label, f"{rooms_display} / {len(df_rm)}")
         if required_physical_seats > total_capacity:
-            c3.error(f"⚠️ Gap Shortage: {required_physical_seats - total_capacity} extra seats needed for spacing")
+            c3.error(f"⚠️ Gap Shortage: {required_physical_seats - total_capacity} extra seats needed")
         else:
             c3.success(f"✅ Safe Spacing: {total_capacity - required_physical_seats} surplus seats")
 
@@ -223,18 +256,16 @@ else:
 
         if st.session_state.plans:
             plans = st.session_state.plans
-            leftovers = st.session_state.leftovers
             assignments = {}
             temp_fa = df_fa.copy()
+            temp_fa['DutiesDone'] = pd.to_numeric(temp_fa['DutiesDone'])
+            
             for room_name, grid in plans.items():
                 temp_fa = temp_fa.sort_values(by='DutiesDone')
                 chosen_teacher = temp_fa.iloc[0]['Name']
                 temp_fa.at[temp_fa.index[0], 'DutiesDone'] += 1
                 assignments[room_name] = [chosen_teacher]
 
-            if leftovers > 0:
-                st.warning(f"⚠️ Warning: {leftovers} students unseated. Spacing rules required {required_physical_seats} chairs, but rooms only provide {total_capacity}.")
-            
             st.divider()
             st.header(f"🪑 Room Visualizations")
             room_tabs = st.tabs(list(plans.keys()))
@@ -260,7 +291,7 @@ else:
             pdf_bytes = create_pdf(plans, assignments, selected_date, selected_time)
             st.download_button(label="📥 Download PDF Report", data=pdf_bytes, file_name=f"Exam_Plan_{selected_date}.pdf", mime="application/pdf", use_container_width=True)
     else:
-        st.error("Error: Missing columns.")
+        st.error("Error: Column missing or format not recognized.")
 
 st.markdown("---")
-st.markdown("<p style='text-align: center; color: gray; font-size: 0.8em;'>© Copyright 2026 - Jalaj Gupta | Automated Seating System</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: gray; font-size: 0.8em;'>© Copyright 2026 - Jalaj Gupta</p>", unsafe_allow_html=True)

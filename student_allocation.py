@@ -11,56 +11,38 @@ st.markdown("""
 
 /* ===== GLOBAL RESET ===== */
 .block-container {
-    padding-top: 0rem !important;
+    padding-top: 2rem !important; /* Added slight padding to prevent content hitting the top */
     margin-top: 0rem !important;
 }
 
-/* Hide header completely */
-header {visibility: hidden; height: 0px;}
+/* 
+   FIX: DO NOT use 'display: none' on stHeader. 
+   This hides the sidebar toggle button. 
+   Instead, we make the header transparent so the button remains but the bar is 'invisible'.
+*/
+[data-testid="stHeader"] {
+    background: rgba(0,0,0,0);
+}
 
-/* ===== SIDEBAR PERFECT ALIGNMENT ===== */
+/* ===== SIDEBAR SAFE FIX ===== */
 
-/* Remove all sidebar padding */
+/* Ensure sidebar has proper top alignment */
 section[data-testid="stSidebar"] {
-    padding: 0rem !important;
+    padding-top: 1rem !important;
 }
 
-/* Control sidebar container */
-section[data-testid="stSidebar"] > div {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;  /* 🔥 THIS FIXES TOP/BOTTOM BALANCE */
-    padding: 0.5rem 0.5rem !important;
-    overflow: auto;
-}
-/* Smooth scrollbar */
-section[data-testid="stSidebar"]::-webkit-scrollbar {
-    width: 6px;
-}
-section[data-testid="stSidebar"]::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 10px;
-}
-/* Remove internal top gap */
-section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {
-    margin-top: 0rem !important;
-    padding-top: 0rem !important;
+/* Correctly targets the internal container of the sidebar */
+[data-testid="stSidebarUserContent"] {
+    padding-top: 2rem !important;
 }
 
-/* Remove hidden spacer div (IMPORTANT FIX) */
-section[data-testid="stSidebar"] div:first-child {
-    margin-top: 0rem !important;
-    padding-top: 0rem !important;
-}
-
-/* ===== FILE UPLOADER ===== */
+/* File uploader spacing */
 [data-testid="stFileUploader"] {
     margin-top: 8px;
     margin-bottom: 12px;
 }
 
-/* ===== FONT ===== */
+/* Font */
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }

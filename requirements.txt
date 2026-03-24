@@ -1,0 +1,7 @@
+streamlit
+pandas
+fpdf
+openpyxl
+xlsxwriter
+pdfplumber
+pymongo

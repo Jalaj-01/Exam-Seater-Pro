@@ -2,6 +2,10 @@
 
 Exam Seater Pro (OptiSeats) is a Python and Streamlit-based web application that automates exam seating arrangements for colleges and universities.
 
+Live demo
+
+- Try the live app: https://optiseat.streamlit.app/
+
 ## Features
 
 - Generate optimized seating plans for exams
@@ -15,7 +19,13 @@ Exam Seater Pro (OptiSeats) is a Python and Streamlit-based web application that
 - Python 3.8+
 - pip
 
-Recommended to create and use a virtual environment:
+A ready-to-use requirements.txt is included in the repository. Install dependencies with:
+
+```bash
+pip install -r requirements.txt
+```
+
+If you prefer a virtual environment (recommended):
 
 ```bash
 python -m venv .venv
@@ -23,21 +33,9 @@ source .venv/bin/activate  # macOS / Linux
 .\.venv\Scripts\activate   # Windows
 ```
 
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-If the repository does not include a requirements.txt, you can at minimum install Streamlit:
-
-```bash
-pip install streamlit
-```
-
 ## Running the app
 
-From the project root, run:
+- Run locally:
 
 ```bash
 streamlit run app.py
@@ -45,12 +43,24 @@ streamlit run app.py
 
 If your main Streamlit file is named differently (for example `main.py` or `seater.py`), replace `app.py` with the correct filename.
 
-Open the provided local URL in a browser (usually http://localhost:8501).
+- Or open the live demo in your browser: https://optiseat.streamlit.app/
+
+## Example input data
+
+This repository includes a sample `data/` folder with example CSVs to help you get started:
+
+- `data/students.csv` — sample student list (student_id, name, roll, subject)
+- `data/rooms.csv` — sample room list (room_id, room_name, capacity)
+- `data/exams.csv` — sample exam schedule (exam_id, subject, date, start_time, duration_minutes)
+
+Replace these files with your real data (keeping the same column headers), or use the app UI to upload CSVs.
+
+Data folder URL: https://github.com/Jalaj-01/OptiSeats/tree/main/data
 
 ## Configuration
 
-- Provide input data (students, subjects, rooms, capacities) via the app UI or place CSV files in a documented data/ folder.
-- Adjust algorithm or constraints inside the project modules as needed.
+- Adjust algorithm constraints inside the project modules as needed.
+- If the app expects a different path or filenames, update the code or provide the CSVs through the UI.
 
 ## Tests
 
@@ -66,8 +76,8 @@ Contributions and issues are welcome. Please open an issue to discuss changes or
 
 ## License
 
-Add a LICENSE file to state the project's license. If you don't have one yet, consider using an open-source license such as MIT.
+This project is licensed under the MIT License — see [LICENSE](https://github.com/Jalaj-01/OptiSeats/blob/main/LICENSE) for details.
 
 ## Contact
 
-Created by Jalaj-01. For questions or help, please open an issue on this repository.
+Created by Jalaj-01 (Jalaj Gupta). For questions or help, please open an issue on this repository.

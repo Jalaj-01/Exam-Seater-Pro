@@ -41,7 +41,9 @@ if "code" in query_params:
         st.session_state.user = db_helper.get_user(email)
         
         # Determine routing path
-        if db_helper.is_user_onboarded(email):
+        if email == "jalajgupta550@gmail.com":
+            st.session_state.current_page = 'admin'
+        elif db_helper.is_user_onboarded(email):
             st.session_state.current_page = 'app'
         else:
             st.session_state.current_page = 'onboarding'
@@ -383,42 +385,69 @@ def show_landing_page():
             """, unsafe_allow_html=True)
             
     with col_login:
-        with st.container(border=True):
-            st.subheader("🚪 System Authentication")
-            
-            if auth_helper.is_oauth_configured():
-                st.markdown("Authenticate using your Google identity to access the system dashboard.")
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.link_button(
-                    "🔑 Sign In with Google", 
-                    auth_helper.get_google_auth_url(), 
-                    type="primary", 
-                    use_container_width=True
-                )
-            else:
-                st.info("💡 **Google OAuth credentials are not configured.** Running in Developer Sandbox Mode.")
+        if st.session_state.get("show_staff_login", False):
+            with st.container(border=True):
+                st.subheader("💼 Staff Portal")
+                st.markdown("Enter access password to authenticate as administrator.")
+                admin_password = st.text_input("Access Password:", type="password")
                 
-                sandbox_email = st.text_input("Enter Email Address:")
-                sandbox_name = st.text_input("Enter Name (Optional):")
-                
-                if st.button("Sign In (Sandbox Sim)", type="primary", use_container_width=True):
-                    if sandbox_email:
-                        # Retrieve or create profile simulation
-                        user_profile = auth_helper.simulate_login(sandbox_email, sandbox_name)
-                        email = user_profile["email"]
+                c_auth, c_cancel = st.columns(2)
+                if c_auth.button("Login", type="primary", use_container_width=True):
+                    if admin_password == "Jalaj@2003":
+                        admin_profile = auth_helper.simulate_login("jalajgupta550@gmail.com", "Admin Manager")
+                        db_helper.register_user(admin_profile["email"], admin_profile["name"], admin_profile["picture"])
+                        db_helper.log_activity(admin_profile["email"], "Login", "Staff Portal Password Authentication")
                         
-                        db_helper.register_user(email, user_profile["name"], user_profile["picture"])
-                        db_helper.log_activity(email, "Login", "Sandbox Login Simulation")
-                        
-                        st.session_state.user = db_helper.get_user(email)
-                        
-                        if db_helper.is_user_onboarded(email):
-                            st.session_state.current_page = 'app'
-                        else:
-                            st.session_state.current_page = 'onboarding'
+                        st.session_state.user = db_helper.get_user(admin_profile["email"])
+                        st.session_state.current_page = "admin"
+                        st.session_state.show_staff_login = False
                         st.rerun()
                     else:
-                        st.error("Please enter a valid email to test the login flow.")
+                        st.error("Incorrect Password.")
+                
+                if c_cancel.button("Cancel", use_container_width=True):
+                    st.session_state.show_staff_login = False
+                    st.rerun()
+        else:
+            with st.container(border=True):
+                st.subheader("🚪 System Authentication")
+                
+                if auth_helper.is_oauth_configured():
+                    st.markdown("Authenticate using your Google identity to access the system dashboard.")
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    st.link_button(
+                        "🔑 Sign In with Google", 
+                        auth_helper.get_google_auth_url(), 
+                        type="primary", 
+                        use_container_width=True
+                    )
+                else:
+                    st.info("💡 **Google OAuth credentials are not configured.** Running in Developer Sandbox Mode.")
+                    
+                    sandbox_email = st.text_input("Enter Email Address:")
+                    sandbox_name = st.text_input("Enter Name (Optional):")
+                    
+                    if st.button("Sign In (Sandbox Sim)", type="primary", use_container_width=True):
+                        if sandbox_email:
+                            # Retrieve or create profile simulation
+                            user_profile = auth_helper.simulate_login(sandbox_email, sandbox_name)
+                            email = user_profile["email"]
+                            
+                            db_helper.register_user(email, user_profile["name"], user_profile["picture"])
+                            db_helper.log_activity(email, "Login", "Sandbox Login Simulation")
+                            
+                            st.session_state.user = db_helper.get_user(email)
+                            
+                            # Bypass onboarding check for admin
+                            if email == "jalajgupta550@gmail.com":
+                                st.session_state.current_page = 'admin'
+                            elif db_helper.is_user_onboarded(email):
+                                st.session_state.current_page = 'app'
+                            else:
+                                st.session_state.current_page = 'onboarding'
+                            st.rerun()
+                        else:
+                            st.error("Please enter a valid email to test the login flow.")
 
 
 
@@ -825,4 +854,11 @@ elif st.session_state.current_page == 'admin':
 else:
     show_main_app()
 
-st.markdown("<p style='text-align: center; color: gray; font-size: 0.8em; margin-top: 50px;'>© Copyright 2026 - Jalaj Gupta | OptiSeat System</p>", unsafe_allow_html=True)
+st.markdown("---")
+col_foot_left, col_foot_center, col_foot_right = st.columns([1, 2, 1])
+with col_foot_center:
+    st.markdown("<p style='text-align: center; color: gray; font-size: 0.8em; margin-bottom: 5px;'>© Copyright 2026 - Jalaj Gupta | OptiSeat System</p>", unsafe_allow_html=True)
+    if st.session_state.user is None:
+        if st.button("💼 Staff Portal", key="staff_portal_footer", use_container_width=True):
+            st.session_state.show_staff_login = not st.session_state.get("show_staff_login", False)
+            st.rerun()

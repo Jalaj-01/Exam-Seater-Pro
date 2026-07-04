@@ -383,44 +383,43 @@ def show_landing_page():
             """, unsafe_allow_html=True)
             
     with col_login:
-        st.markdown("<div style='padding: 24px; border-radius: 16px; border: 1px solid #e5e7eb; background-color: #fafafb; box-shadow: 0 4px 6px rgba(0,0,0,0.02);'>", unsafe_allow_html=True)
-        st.subheader("🚪 System Authentication")
-        
-        if auth_helper.is_oauth_configured():
-            st.markdown("Authenticate using your Google identity to access the system dashboard.")
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.link_button(
-                "🔑 Sign In with Google", 
-                auth_helper.get_google_auth_url(), 
-                type="primary", 
-                use_container_width=True
-            )
-        else:
-            st.info("💡 **Google OAuth credentials are not configured.** Running in Developer Sandbox Mode.")
+        with st.container(border=True):
+            st.subheader("🚪 System Authentication")
             
-            sandbox_email = st.text_input("Enter Email Address (use jalajgupta550@gmail.com for admin access):")
-            sandbox_name = st.text_input("Enter Name (Optional):")
-            
-            if st.button("Sign In (Sandbox Sim)", type="primary", use_container_width=True):
-                if sandbox_email:
-                    # Retrieve or create profile simulation
-                    user_profile = auth_helper.simulate_login(sandbox_email, sandbox_name)
-                    email = user_profile["email"]
-                    
-                    db_helper.register_user(email, user_profile["name"], user_profile["picture"])
-                    db_helper.log_activity(email, "Login", "Sandbox Login Simulation")
-                    
-                    st.session_state.user = db_helper.get_user(email)
-                    
-                    if db_helper.is_user_onboarded(email):
-                        st.session_state.current_page = 'app'
+            if auth_helper.is_oauth_configured():
+                st.markdown("Authenticate using your Google identity to access the system dashboard.")
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.link_button(
+                    "🔑 Sign In with Google", 
+                    auth_helper.get_google_auth_url(), 
+                    type="primary", 
+                    use_container_width=True
+                )
+            else:
+                st.info("💡 **Google OAuth credentials are not configured.** Running in Developer Sandbox Mode.")
+                
+                sandbox_email = st.text_input("Enter Email Address:")
+                sandbox_name = st.text_input("Enter Name (Optional):")
+                
+                if st.button("Sign In (Sandbox Sim)", type="primary", use_container_width=True):
+                    if sandbox_email:
+                        # Retrieve or create profile simulation
+                        user_profile = auth_helper.simulate_login(sandbox_email, sandbox_name)
+                        email = user_profile["email"]
+                        
+                        db_helper.register_user(email, user_profile["name"], user_profile["picture"])
+                        db_helper.log_activity(email, "Login", "Sandbox Login Simulation")
+                        
+                        st.session_state.user = db_helper.get_user(email)
+                        
+                        if db_helper.is_user_onboarded(email):
+                            st.session_state.current_page = 'app'
+                        else:
+                            st.session_state.current_page = 'onboarding'
+                        st.rerun()
                     else:
-                        st.session_state.current_page = 'onboarding'
-                    st.rerun()
-                else:
-                    st.error("Please enter a valid email to test the login flow.")
-                    
-        st.markdown("</div>", unsafe_allow_html=True)
+                        st.error("Please enter a valid email to test the login flow.")
+
 
 
 # =========================================================================
